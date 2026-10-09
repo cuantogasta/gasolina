@@ -1,0 +1,8 @@
+{
+  "name": "cuantogasta-gasolina",
+  "private": true,
+  "type": "module",
+  "description": "Precio de la gasolina y el diésel hoy en cada gasolinera de España. Sitio estático que se actualiza solo.",
+  "scripts": { "datos": "node src/fetch.mjs", "build": "node src/build.mjs" },
+  "engines": { "node": ">=20" }
+}

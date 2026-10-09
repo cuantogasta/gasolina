@@ -1,0 +1,11 @@
+{
+  "siteName": "CuántoGasta Gasolina",
+  "siteUrl": "https://cuantogasta.github.io",
+  "base": "/gasolina",
+  "mainSite": "https://cuantogasta.github.io",
+  "repo": "cuantogasta/gasolina",
+  "amazonTag": "cuantogasta03-21",
+  "adsenseClient": "",
+  "cloudflareToken": "",
+  "indexNowKey": "d5a0f9976f93a088625b1e0a8cf87257"
+}
