@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { COMBUSTIBLES, PROVINCIAS, slug, nombreMarca, media } from './datos.mjs';
+import { COMBUSTIBLES, PROVINCIAS, slug, nombreMarca, NOMBRE_MARCA, media } from './datos.mjs';
 import { icon } from './content/iconos.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -216,8 +216,9 @@ function tile(label, valor, sub, main = false) {
 }
 
 function estacionNombre(e) {
-  if (/^(n[º°o]\.?\s*\d|\d|-)/i.test(e.rotulo) || e.rotulo.length < 3) return `Gasolinera de ${e.loc || e.mun}`;
-  return e.marca === 'Sin marca' || /^(E\.?S\.?|Estacion|Gasolinera)\b/i.test(e.rotulo) ? e.rotulo : nombreMarca(e.marca);
+  if (NOMBRE_MARCA[e.marca]) return nombreMarca(e.marca); // marcas conocidas, también las de dos letras (BP, Q8)
+  if (e.marca === 'Sin marca' || /^(n[º°o]\.?\s*\d|\d|-)/i.test(e.rotulo) || e.rotulo.length < 3) return `Gasolinera de ${e.loc || e.mun}`;
+  return /^(E\.?S\.?|Estacion|Gasolinera)\b/i.test(e.rotulo) ? e.rotulo : nombreMarca(e.marca);
 }
 
 function filaEstacion(e, pos, combs, { conMunicipio = false, distancia = null, destacar = null } = {}) {

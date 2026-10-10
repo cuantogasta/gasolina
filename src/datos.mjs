@@ -53,9 +53,11 @@ const num = (s) => {
 const MARCAS = ['REPSOL', 'MOEVE', 'CEPSA', 'GALP', 'BALLENOIL', 'PLENERGY', 'SHELL', 'PETROPRIX', 'PETRONOR', 'CARREFOUR', 'BP', 'AVIA',
   'Q8', 'ESCLATOIL', 'BONAREA', 'PLENOIL', 'ALCAMPO', 'EROSKI', 'DISA', 'CAMPSA', 'GASEXPRESS', 'MEROIL', 'AUTONETOIL', 'VALCARCE',
   'PCAN', 'PETROCAT', 'TAMOIL', 'LOW COST REPOST', 'COSTCO', 'E.LECLERC', 'HAM', 'NATURGY', 'SIMON GRUP', 'ENERGY CARBURANTES'];
+// rótulos que en realidad significan «sin marca» (el Ministerio usa «NINGUNO» para las gasolineras independientes)
+const SIN_ROTULO = /^(NINGUN[OA]|SIN (ROTULO|RÓTULO|MARCA|DETERMINAR|ASIGNAR)|S\/?R|N\/?A|NO|SI|-+|\.+)$/;
 export function marca(rotulo) {
   const r = String(rotulo || '').toUpperCase().replace(/\s+/g, ' ').trim();
-  if (!r) return 'Sin marca';
+  if (!r || SIN_ROTULO.test(r)) return 'Sin marca';
   if (r.startsWith('BON') && r.includes('AREA')) return 'BONAREA';
   if (r.includes('CEPSA')) return 'CEPSA';
   if (r.includes('MOEVE')) return 'MOEVE';
@@ -75,8 +77,8 @@ export const nombreMarca = (m) => NOMBRE_MARCA[m] || titulo(m);
 // «CALLE CALLE DE LADERA, 34» -> «Calle de Ladera, 34»; quita comas y espacios sobrantes al final
 export function limpiarDireccion(s) {
   return titulo(String(s || '').trim())
-    .replace(/^(Calle|Avenida|Avda.?|Carretera|Ctra.?|Plaza|Paseo|Camino)s+(Calle|Avenida|Avda.?|Carretera|Ctra.?|Plaza|Paseo|Camino)/i, '$2')
-    .replace(/s+,/g, ',').replace(/[,s]+$/, '').replace(/s{2,}/g, ' ');
+    .replace(/^(Calle|Avenida|Avda\.?|Carretera|Ctra\.?|Plaza|Paseo|Camino)\s+(Calle|Avenida|Avda\.?|Carretera|Ctra\.?|Plaza|Paseo|Camino)\b/i, '$2')
+    .replace(/\s+,/g, ',').replace(/[,\s]+$/, '').replace(/\s{2,}/g, ' ');
 }
 
 /** Convierte la respuesta de la API en una lista compacta de gasolineras abiertas al público. */
