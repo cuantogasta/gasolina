@@ -287,19 +287,41 @@ const PRODUCTOS = [
 ];
 const productos = () => `<section class="affiliate sec"><div class="sec-head"><p class="eyebrow">${icon('leaf')} Gasta menos en cada depósito</p><h2>Tres compras que ayudan a ahorrar combustible</h2></div><div class="prod-grid">${PRODUCTOS.map((p) => `<a class="prod" href="${esc(amazonUrl(p.q))}" ${amazonAttrs}><span class="prod-ico">${icon(p.ico)}</span><strong>${esc(p.t)}</strong><span>${esc(p.d)}</span><em>Ver precios en Amazon ${icon('arrow')}</em></a>`).join('')}</div>${CFG.amazonTag ? '<p class="disclosure">Enlaces de afiliado: si compras a través de ellos, la web recibe una pequeña comisión sin coste extra para ti. Así se mantiene gratis.</p>' : ''}</section>`;
 
-const buscador = (titulo = 'Encuentra la gasolinera más barata cerca de ti') => `<section class="card near" id="cerca">
-<div class="calc-head"><span class="calc-ico">${icon('locate')}</span><div><h2>${titulo}</h2><p>Usa la ubicación de tu móvil. Tu posición no sale de tu dispositivo.</p></div></div>
-<div class="near-ctrl"><div class="chips" role="group" aria-label="Combustible">${COMBUSTIBLES.map((c, i) => `<button type="button" data-comb="${c.id}" aria-pressed="${i === 0}">${c.nombre}</button>`).join('')}</div>
+let nBuscador = 0;
+const buscador = (titulo = 'Las gasolineras más baratas cerca de ti') => `<section class="card near" id="cerca">
+<div class="calc-head"><span class="calc-ico">${icon('locate')}</span><div><h2>${titulo}</h2><p>Con tu ubicación, tu pueblo o tu código postal. La web recuerda tu zona solo en este dispositivo.</p></div></div>
+<div class="near-elegir"><button class="btn" type="button" data-buscar>${icon('locate')}<span>Usar mi ubicación</span></button>
+<div class="near-q"><input type="search" data-q placeholder="o escribe tu pueblo o código postal" aria-label="Tu pueblo, ciudad o código postal" autocomplete="off" enterkeyhint="search" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="zonas-${++nBuscador}"><ul class="near-sug" id="zonas-${nBuscador}" role="listbox" aria-label="Zonas" hidden></ul></div></div>
+<div class="near-actual" hidden>${icon('pin')}<span>Cerca de <strong data-zona></strong></span><button type="button" class="near-link" data-cambiar>Cambiar zona</button><button type="button" class="near-link" data-olvidar>Olvidar</button></div>
+<div class="near-ctrl" hidden><div class="chips" role="group" aria-label="Combustible">${COMBUSTIBLES.map((c, i) => `<button type="button" data-comb="${c.id}" aria-pressed="${i === 0}">${c.nombre}</button>`).join('')}</div>
 <label>Radio <select data-radio><option value="5">5 km</option><option value="10" selected>10 km</option><option value="25">25 km</option><option value="50">50 km</option></select></label>
-<button class="btn" type="button" data-buscar>${icon('locate')}<span>Buscar cerca de mí</span></button></div>
+<label>Ordenar <select data-orden><option value="precio" selected>Más baratas</option><option value="distancia">Más cercanas</option></select></label></div>
 <div class="near-out" aria-live="polite"></div>
-<p class="near-alt">¿Prefieres elegir una zona? <select data-ir aria-label="Elige tu provincia"><option value="">Elige tu provincia…</option>${provincias.map((p) => `<option value="${u(p.path)}">${esc(p.nombre)}</option>`).join('')}</select></p>
+<p class="near-alt">¿Prefieres ver una provincia entera? <select data-ir aria-label="Elige una provincia"><option value="">Elige provincia…</option>${provincias.map((p) => `<option value="${u(p.path)}">${esc(p.nombre)}</option>`).join('')}</select></p>
 </section>`;
 
 // ---------------------------------------------------------------- datos para el navegador
 const compacto = EST.filter((e) => Number.isFinite(e.lat) && Number.isFinite(e.lon)).map((e) => [
   +e.lat.toFixed(5), +e.lon.toFixed(5), e.p.g95 || 0, e.p.die || 0, e.p.g98 || 0, e.p.glp || 0, estacionNombre(e), e.dir, e.mun, `${munDe(e).path}#e${e.id}`]);
 write('/datos/gasolineras.json', JSON.stringify({ fecha: FECHA, hora: HORA, base: BASE, e: compacto }));
+// zonas para buscar por texto: municipios y localidades con gasolinera (centro de sus gasolineras) y códigos postales
+{
+  const r3 = (v) => +v.toFixed(3);
+  const zonas = [];
+  for (const m of municipios.values()) if (Number.isFinite(m.lat) && Number.isFinite(m.lon)) zonas.push([m.nombre, PROVINCIAS[m.prov], r3(m.lat), r3(m.lon)]);
+  const locs = new Map(), cps = new Map();
+  for (const e of EST) {
+    if (!Number.isFinite(e.lat) || !Number.isFinite(e.lon)) continue;
+    if (/^\d{5}$/.test(e.cp || '')) { if (!cps.has(e.cp)) cps.set(e.cp, []); cps.get(e.cp).push(e); }
+    if (!e.loc || slug(e.loc) === slug(e.mun) || municipios.has(`${e.prov}|${slug(e.loc)}`)) continue;
+    const k = `${e.prov}|${slug(e.loc)}`;
+    if (!locs.has(k)) locs.set(k, { nombre: e.loc, mun: e.mun, prov: e.prov, est: [] });
+    locs.get(k).est.push(e);
+  }
+  for (const l of locs.values()) zonas.push([`${l.nombre} (${l.mun})`, PROVINCIAS[l.prov], r3(media(l.est.map((e) => e.lat))), r3(media(l.est.map((e) => e.lon)))]);
+  const cp = Object.fromEntries([...cps].sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => [k, [r3(media(v.map((e) => e.lat))), r3(media(v.map((e) => e.lon)))]]));
+  write('/datos/zonas.json', JSON.stringify({ m: zonas, cp }));
+}
 write('/datos/resumen.json', JSON.stringify({ fecha: FECHA, hora: HORA, media: Object.fromEntries(COMBUSTIBLES.map((c) => [c.id, NAC[c.id] ? +NAC[c.id].avg.toFixed(3) : null])) }));
 
 // ---------------------------------------------------------------- portada
@@ -324,11 +346,11 @@ write('/datos/resumen.json', JSON.stringify({ fecha: FECHA, hora: HORA, media: O
 </div><div class="hero-prices">
 ${['g95', 'die'].map((c) => `<div class="hp"><span>${C[c].nombre}</span><strong>${litro(NAC[c].avg)}</strong><small>${vAy(c) !== null ? `${cts(vAy(c))} desde ayer` : 'media de España'}</small></div>`).join('')}
 </div></section>
-<div class="tiles tiles-4">${COMBUSTIBLES.map((c) => NAC[c.id] ? `<a class="tile tile-link" href="${u(`/${c.slug}/`)}"><span>${c.nombre}</span><strong>${litro(NAC[c.id].avg)}</strong><small>${PEN[c.id] ? `Mín. península ${litro(PEN[c.id].min.p[c.id])} · ` : ''}${fmt(NAC[c.id].n, 0)} gasolineras</small></a>` : '').join('')}</div>
 ${buscador()}
+<div class="tiles tiles-4">${COMBUSTIBLES.map((c) => NAC[c.id] ? `<a class="tile tile-link" href="${u(`/${c.slug}/`)}"><span>${c.nombre}</span><strong>${litro(NAC[c.id].avg)}</strong><small>${PEN[c.id] ? `Mín. península ${litro(PEN[c.id].min.p[c.id])} · ` : ''}${fmt(NAC[c.id].n, 0)} gasolineras</small></a>` : '').join('')}</div>
 <section class="sec"><div class="sec-head"><p class="eyebrow">${icon('trend')} Evolución</p><h2>Así ha cambiado el precio en los últimos meses</h2><p>Media diaria de todas las gasolineras de España (€/litro).</p></div>
 <div class="card chart-card">${grafico([{ nombre: 'Gasolina 95', cls: 's-g95', puntos: serieNac('g95') }, { nombre: 'Diésel', cls: 's-die', puntos: serieNac('die') }])}<p class="chart-note"><a href="${u('/historico/')}">Ver el histórico completo</a> · <a href="${u('/mejor-dia-para-repostar/')}">¿Qué día de la semana es más barato?</a></p></div></section>
-<section class="sec"><div class="sec-head"><p class="eyebrow">${icon('euro')} Las más baratas de España</p><h2>Gasolineras más baratas hoy</h2><p>En la península y Baleares. En Canarias, Ceuta y Melilla los impuestos son más bajos y los precios no son comparables: consúltalos en su provincia.</p></div>
+<section class="sec"><div class="sec-head"><p class="eyebrow">${icon('euro')} En toda España</p><h2>Las gasolineras más baratas de España hoy</h2><p>Las más baratas de todo el país, en la península y Baleares; las de tu zona, <a href="#cerca">en el buscador de arriba</a>. En Canarias, Ceuta y Melilla los impuestos son más bajos y los precios no son comparables: consúltalos en su provincia.</p></div>
 <div class="two-col"><div class="card"><h3>${icon('pump')} Gasolina 95</h3>${tablaEstaciones(PEN.g95.orden.slice(0, 10), ['g95'], { conMunicipio: true })}<p class="more"><a class="link-arrow" href="${u('/precio-gasolina-95/')}">Precio de la gasolina 95 ${icon('arrow')}</a></p></div>
 <div class="card"><h3>${icon('pump')} Diésel</h3>${tablaEstaciones(PEN.die.orden.slice(0, 10), ['die'], { conMunicipio: true })}<p class="more"><a class="link-arrow" href="${u('/precio-diesel/')}">Precio del diésel ${icon('arrow')}</a></p></div></div></section>
 <section class="sec" id="provincias"><div class="sec-head"><p class="eyebrow">${icon('pin')} Por provincia</p><h2>Precio medio de la gasolina 95 por provincia</h2><p>Pulsa en tu provincia para ver todas sus gasolineras, de la más barata a la más cara.</p></div>
@@ -397,11 +419,11 @@ for (const p of provincias) {
 <div class="tiles tiles-4">${g ? tile('Gasolina 95 · media', litro(g.avg), `${cts(difG)} frente a España`, true) : ''}${d ? tile('Diésel · media', litro(d.avg), `${cts(difD)} frente a España`) : ''}${g ? tile('Gasolina 95 más barata', litro(g.min.p.g95), esc(g.min.mun)) : ''}${d ? tile('Diésel más barato', litro(d.min.p.die), esc(d.min.mun)) : ''}</div>
 <p class="lead">En ${esc(p.nombre)} la gasolina 95 cuesta hoy de media <strong>${g ? litro(g.avg) : '—'}</strong>${g ? `, ${textoComp(difG)}` : ''}. Entre la gasolinera más barata y la más cara de la provincia hay ${g ? ctsAbs(g.max.p.g95 - g.min.p.g95) : '—'} por litro${g ? `: ${fmt((g.max.p.g95 - g.min.p.g95) * 50, 2)} € de diferencia en un depósito de 50 litros` : ''}.</p>
 <div class="two-col">${g ? `<div class="card"><h2 class="h3">${icon('pump')} Gasolina 95 más barata</h2>${tablaEstaciones(g.orden.slice(0, 10), ['g95'], { conMunicipio: true })}</div>` : ''}${d ? `<div class="card"><h2 class="h3">${icon('pump')} Diésel más barato</h2>${tablaEstaciones(d.orden.slice(0, 10), ['die'], { conMunicipio: true })}</div>` : ''}</div>
+${buscador()}
 ${FECHAS.length > 7 ? `<div class="card chart-card"><h2 class="h3">${icon('trend')} Evolución del precio medio en ${esc(p.nombre)}</h2>${grafico([{ nombre: 'Gasolina 95', cls: 's-g95', puntos: serieProv(p.code, 'g95') }, { nombre: 'Diésel', cls: 's-die', puntos: serieProv(p.code, 'die') }])}</div>` : ''}
 ${munBaratos.length > 3 ? `<section class="sec"><div class="sec-head"><h2>Municipios con la gasolina más barata</h2><p>Precio medio de la gasolina 95 en cada municipio.</p></div><div class="card">${ranking(munBaratos, { valor: (x) => x.g95.avg, etiqueta: (x) => x.m.nombre, href: (x) => u(x.m.path) })}</div></section>` : ''}
 <section class="sec"><div class="sec-head"><h2>Gasolineras por municipio</h2><p>${p.muns.length} municipios de ${esc(p.nombre)} con gasolinera.</p></div>
 <div class="table-wrap"><table class="data"><thead><tr><th>Municipio</th><th class="num">Gasolineras</th><th class="num">Gasolina 95</th><th class="num">Diésel</th></tr></thead><tbody>${munOrd.map((x) => `<tr><td><a href="${u(x.m.path)}">${esc(x.m.nombre)}</a></td><td class="num">${x.m.est.length}</td><td class="num">${x.g95 ? litro(x.g95.avg) : '—'}</td><td class="num">${x.die ? litro(x.die.avg) : '—'}</td></tr>`).join('')}</tbody></table></div></section>
-${buscador()}
 ${productos()}
 ${faq.html}`;
   write(p.path, layout({
@@ -554,9 +576,9 @@ write('/cerca-de-mi/', layout({
   title: 'Gasolineras más baratas cerca de mí (precios de hoy)',
   desc: 'Encuentra en un clic la gasolinera más barata cerca de tu ubicación, con los precios oficiales de hoy de gasolina 95, 98, diésel y GLP.',
   p: '/cerca-de-mi/', crumbs: [['/cerca-de-mi/', 'Cerca de mí']],
-  body: `${pageHead({ ico: 'locate', eyebrow: `${icon('locate')} Cerca de ti`, h1: 'Gasolineras más baratas cerca de mí', sub: 'Pulsa el botón, permite la ubicación y verás las gasolineras de tu zona ordenadas por precio.' })}
+  body: `${pageHead({ ico: 'locate', eyebrow: `${icon('locate')} Cerca de ti`, h1: 'Gasolineras más baratas cerca de mí', sub: 'Usa tu ubicación o escribe tu pueblo o código postal y verás las gasolineras de tu zona ordenadas por precio.' })}
 ${buscador('Buscar gasolineras baratas cerca de ti')}
-<section class="prose sec"><h2>Cómo funciona</h2><p>Tu navegador nos da tu posición aproximada y la web calcula, <strong>en tu propio dispositivo</strong>, la distancia a las ${fmt(EST.length, 0)} gasolineras de España. Tu ubicación no se envía a ningún sitio ni se guarda.</p><p>Si no quieres compartir la ubicación, elige tu provincia en el desplegable y después tu municipio.</p></section>`,
+<section class="prose sec"><h2>Cómo funciona</h2><p>Tu navegador nos da tu posición aproximada y la web calcula, <strong>en tu propio dispositivo</strong>, la distancia a las ${fmt(EST.length, 0)} gasolineras de España. Tu ubicación no se envía a ningún sitio.</p><p>Si no quieres compartir la ubicación, escribe tu pueblo, tu ciudad o tu código postal: la web usa el centro de esa zona.</p><p>Para que la próxima vez veas tus gasolineras sin hacer nada, la web recuerda tu zona (redondeada a unos 100 metros) y el combustible elegido en el almacenamiento de tu navegador. No sale de tu dispositivo y puedes borrarla cuando quieras con «Olvidar».</p></section>`,
 }), { priority: '0.8' });
 
 // ---------------------------------------------------------------- sobre
@@ -569,7 +591,7 @@ write('/sobre/', layout({
 <h2>Qué gasolineras se incluyen</h2><p>Solo las de venta al público: se excluyen las de venta restringida a socios o flotas, porque no están abiertas a cualquier conductor. También se descartan precios claramente erróneos (por debajo de 0,60 € o por encima de 3,50 € por litro).</p>
 <h2>Cómo se calculan las medias</h2><p>Las medias son aritméticas: todas las gasolineras pesan igual, independientemente de lo que vendan. El histórico usa el precio oficial de cierre de cada día.</p>
 <h2>Limitaciones</h2><p>El precio puede cambiar a lo largo del día y alguna gasolinera puede tardar en comunicarlo. Antes de un desplazamiento largo, comprueba el precio en el surtidor.</p>
-<h2>Privacidad</h2><p>La web no usa cookies propias ni pide registro. La búsqueda «cerca de mí» calcula las distancias en tu navegador: tu ubicación no se envía a ningún servidor. Más información en la <a href="${MAIN}/privacidad/">política de privacidad</a>.</p>
+<h2>Privacidad</h2><p>La web no usa cookies propias ni pide registro. La búsqueda «cerca de mí» calcula las distancias en tu navegador: tu ubicación no se envía a ningún servidor. Tu zona y el combustible elegido se recuerdan en el almacenamiento local de tu navegador para mostrarte tus gasolineras al volver; puedes borrarlos con «Olvidar». Más información en la <a href="${MAIN}/privacidad/">política de privacidad</a>.</p>
 </section>`,
 }), { priority: '0.3' });
 
