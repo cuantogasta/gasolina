@@ -191,7 +191,7 @@ function footer() {
   const grandes = ['madrid', 'barcelona', 'valencia', 'sevilla', 'malaga', 'alicante', 'murcia', 'zaragoza'];
   return `<footer class="site-footer"><div class="wrap">
 <div class="foot-cols">
-<div class="foot-brand"><a class="brand" href="${u('/')}">${LOGO}<span>${BRAND}</span></a><p>El precio de la gasolina y el diésel hoy en las ${fmt(EST.length, 0).replace(',', '.')} gasolineras de España, con datos oficiales. Gratis, sin registro y sin cookies.</p>
+<div class="foot-brand"><a class="brand" href="${u('/')}">${LOGO}<span>${BRAND}</span></a><p>El precio de la gasolina y el diésel hoy en las ${fmt(EST.length, 0).replace(',', '.')} gasolineras de España, con datos oficiales. ${CFG.adsenseClient ? 'Gratis y sin registro.' : 'Gratis, sin registro y sin cookies.'}</p>
 <ul class="trust-list"><li>${icon('shield')} Datos del Ministerio para la Transición Ecológica</li><li>${icon('clock')} Actualizado el ${fechaCorta(FECHA)} a las ${HORA}</li></ul></div>
 <div><strong>Precios hoy</strong><ul>${COMBUSTIBLES.map((c) => `<li><a href="${u(`/${c.slug}/`)}">${c.nombre}</a></li>`).join('')}<li><a href="${u('/historico/')}">Histórico de precios</a></li></ul></div>
 <div><strong>Provincias</strong><ul>${grandes.map((s) => provincias.find((p) => p.slug === s)).filter(Boolean).map((p) => `<li><a href="${u(p.path)}">${esc(p.nombre)}</a></li>`).join('')}</ul></div>
@@ -592,7 +592,7 @@ write('/sobre/', layout({
 <h2>Qué gasolineras se incluyen</h2><p>Solo las de venta al público: se excluyen las de venta restringida a socios o flotas, porque no están abiertas a cualquier conductor. También se descartan precios claramente erróneos (por debajo de 0,60 € o por encima de 3,50 € por litro).</p>
 <h2>Cómo se calculan las medias</h2><p>Las medias son aritméticas: todas las gasolineras pesan igual, independientemente de lo que vendan. El histórico usa el precio oficial de cierre de cada día.</p>
 <h2>Limitaciones</h2><p>El precio puede cambiar a lo largo del día y alguna gasolinera puede tardar en comunicarlo. Antes de un desplazamiento largo, comprueba el precio en el surtidor.</p>
-<h2>Privacidad</h2><p>La web no usa cookies propias ni pide registro. La búsqueda «cerca de mí» calcula las distancias en tu navegador: tu ubicación no se envía a ningún servidor. Tu zona y el combustible elegido se recuerdan en el almacenamiento local de tu navegador para mostrarte tus gasolineras al volver; puedes borrarlos con «Olvidar». Más información en la <a href="${MAIN}/privacidad/">política de privacidad</a>.</p>
+<h2>Privacidad</h2><p>La web no usa cookies propias ni pide registro.${CFG.adsenseClient ? ' Se financia con publicidad de Google AdSense: Google puede usar cookies para mostrar anuncios, y antes de usar las que no son necesarias te pide permiso con su aviso de cookies.' : ''} La búsqueda «cerca de mí» calcula las distancias en tu navegador: tu ubicación no se envía a ningún servidor. Tu zona y el combustible elegido se recuerdan en el almacenamiento local de tu navegador para mostrarte tus gasolineras al volver; puedes borrarlos con «Olvidar». Más información en la <a href="${MAIN}/privacidad/">política de privacidad</a>.</p>
 </section>`,
 }), { priority: '0.3' });
 
