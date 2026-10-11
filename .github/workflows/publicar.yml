@@ -4,9 +4,9 @@ name: Actualizar y publicar
 
 on:
   schedule:
-    - cron: '20 5 * * *'   # 07:20 en verano / 06:20 en invierno (hora de Madrid)
-    - cron: '20 11 * * *'  # mediodía
-    - cron: '20 17 * * *'  # tarde
+    # Cada 3 horas, en minutos poco habituales: GitHub retrasa o se salta a veces las ejecuciones programadas,
+    # sobre todo a las horas en punto, y así siempre hay alguna que llega a tiempo.
+    - cron: '37 4,7,10,13,16,19 * * *'  # 06:37, 09:37, 12:37, 15:37, 18:37 y 21:37 en verano (una hora menos en invierno)
   push:
     branches: [main]
   workflow_dispatch:
