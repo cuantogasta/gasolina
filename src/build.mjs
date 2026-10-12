@@ -195,7 +195,7 @@ function footer() {
 <ul class="trust-list"><li>${icon('shield')} Datos del Ministerio para la Transición Ecológica</li><li>${icon('clock')} Actualizado el ${fechaCorta(FECHA)} a las ${HORA}</li></ul></div>
 <div><strong>Precios hoy</strong><ul>${COMBUSTIBLES.map((c) => `<li><a href="${u(`/${c.slug}/`)}">${c.nombre}</a></li>`).join('')}<li><a href="${u('/historico/')}">Histórico de precios</a></li></ul></div>
 <div><strong>Provincias</strong><ul>${grandes.map((s) => provincias.find((p) => p.slug === s)).filter(Boolean).map((p) => `<li><a href="${u(p.path)}">${esc(p.nombre)}</a></li>`).join('')}</ul></div>
-<div><strong>Más</strong><ul><li><a href="${u('/cerca-de-mi/')}">Gasolineras cerca de mí</a></li><li><a href="${u('/marcas/')}">Ranking de marcas</a></li><li><a href="${u('/calculadora-coste-viaje/')}">Calculadora de viaje</a></li><li><a href="${MAIN}/">Precio de la luz hoy</a></li><li><a href="${u('/sobre/')}">Método y fuentes</a></li><li><a href="${MAIN}/aviso-legal/">Aviso legal</a> · <a href="${MAIN}/privacidad/">Privacidad</a></li></ul></div>
+<div><strong>Más</strong><ul><li><a href="${u('/cerca-de-mi/')}">Gasolineras cerca de mí</a></li><li><a href="${u('/marcas/')}">Ranking de marcas</a></li><li><a href="${u('/calculadora-coste-viaje/')}">Calculadora de viaje</a></li><li><a href="${u('/widget-gratis/')}">Widget gratis para tu web</a></li><li><a href="${MAIN}/">Precio de la luz hoy</a></li><li><a href="${u('/sobre/')}">Método y fuentes</a></li><li><a href="${MAIN}/aviso-legal/">Aviso legal</a> · <a href="${MAIN}/privacidad/">Privacidad</a></li></ul></div>
 </div>
 <p class="legal">Precios de venta al público de las estaciones de servicio de España (fuente: <a href="https://geoportalgasolineras.es/" rel="noopener">Geoportal de Hidrocarburos</a>, Ministerio para la Transición Ecológica y el Reto Demográfico). Los precios incluyen impuestos y los comunica cada gasolinera; pueden cambiar a lo largo del día. Información orientativa.${CFG.amazonTag ? ' En calidad de Afiliado de Amazon, obtengo ingresos por las compras adscritas que cumplen los requisitos aplicables.' : ''}</p>
 </div></footer>`;
@@ -450,6 +450,14 @@ for (const m of municipios.values()) {
   }
   const difProv = g && prov.s.g95 ? g.avg - prov.s.g95.avg : null;
   const n = m.est.length;
+  { // datos del widget de este municipio: las 5 más baratas de cada combustible (si hay pocas, se completan con las de alrededor)
+    const top = (c) => {
+      let l = m.est.filter((e) => e.p[c]).sort((a, b) => a.p[c] - b.p[c]).map((e) => ({ e, d: null }));
+      if (l.length < 3 && Number.isFinite(m.lat)) l = l.concat(cercanas(ref, 15, (e) => e.p[c] && !(e.prov === m.prov && slug(e.mun) === m.slug)).sort((a, b) => a.e.p[c] - b.e.p[c]).slice(0, 5 - l.length));
+      return l.sort((x, y) => x.e.p[c] - y.e.p[c] || (x.d ?? 0) - (y.d ?? 0)).slice(0, 5).map(({ e, d }) => [estacionNombre(e), e.dir, e.p[c], d === null ? '' : `${e.mun} · a ${fmt(d, 1)} km`]);
+    };
+    write(`/datos/w${m.path.slice(0, -1)}.json`, JSON.stringify({ n: m.nombre, u: m.path, f: FECHA, h: HORA, g95: top('g95'), die: top('die') }));
+  }
   const intro = n === 1
     ? `En ${esc(m.nombre)} hay una gasolinera: ${esc(estacionNombre(m.est[0]))}, en ${esc(m.est[0].dir)}.`
     : `En ${esc(m.nombre)} hay ${n} gasolineras.${g ? ` La gasolina 95 más barata está hoy en <strong>${esc(estacionNombre(g.min))}</strong> (${esc(g.min.dir)}) a <strong>${litro(g.min.p.g95)}</strong>${g.n > 1 ? `, ${ctsAbs(g.max.p.g95 - g.min.p.g95)} menos que la más cara` : ''}.` : ''}`;
@@ -465,6 +473,7 @@ for (const m of municipios.values()) {
 ${alternativas.length ? `<section class="sec"><div class="sec-head"><h2>Más baratas cerca de ${esc(m.nombre)}</h2><p>Gasolineras a menos de 15 km con la gasolina 95 más barata que aquí.</p></div>${tablaEstaciones(alternativas, ['g95', 'die'], { conMunicipio: true })}</section>` : ''}
 <p class="more"><a class="link-arrow" href="${u(prov.path)}">Todas las gasolineras de ${esc(prov.nombre)} ${icon('arrow')}</a></p>
 ${buscador()}
+<aside class="callout">${icon('info')} <strong>¿Tienes una web o un blog de ${esc(m.nombre)}?</strong> Pon gratis en ella las gasolineras más baratas del municipio, actualizadas cada día: <a href="${u('/widget-gratis/')}?m=${m.path.slice(1, -1)}">consigue el widget</a>.</aside>
 ${faq.html}`;
   write(m.path, layout({
     title: `Gasolineras baratas en ${m.nombre} hoy: precio gasolina y diésel`,
@@ -597,6 +606,76 @@ write('/sobre/', layout({
 }), { priority: '0.3' });
 
 // ---------------------------------------------------------------- 404, sitemap e IndexNow
+
+// ---------------------------------------------------------------- widget para otras webs
+// /widget/?m=provincia/municipio es una página mínima para un iframe (sin índice en Google) que lee los datos
+// pequeños de /datos/w/provincia/municipio.json. /widget-gratis/ deja elegir el municipio y copiar el código:
+// el enlace que va debajo del iframe apunta a la página del municipio y suma enlaces hacia la web.
+{
+  const css = `*{box-sizing:border-box}html,body{height:100%}body{margin:0;font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#10231f;background:#fff}
+.w{height:100%;padding:12px 14px;border:1px solid #d5e4df;border-radius:12px;display:flex;flex-direction:column;gap:8px;overflow:hidden}
+.t{margin:0;font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline;gap:8px}.t small{font-weight:500;color:#5b6f69;white-space:nowrap}
+.tabs{display:flex;gap:6px}.tabs button{font:inherit;font-size:12px;font-weight:700;border:1.5px solid #d5e4df;background:none;color:inherit;padding:3px 10px;border-radius:999px;cursor:pointer}.tabs button[aria-pressed=true]{background:#0f766e;border-color:#0f766e;color:#fff}
+ol{list-style:none;margin:0;padding:0;flex:1;overflow:hidden}li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid #edf3f1}li:last-child{border:0}
+li div{min-width:0}li strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}li small{display:block;color:#5b6f69;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+li b{white-space:nowrap;font-variant-numeric:tabular-nums}li:first-child b{color:#15803d}
+.f{display:flex;justify-content:space-between;gap:8px;font-size:12px}.f a{color:#0f766e;font-weight:700;text-decoration:none}.f span{color:#5b6f69}.msg{color:#5b6f69}
+@media (prefers-color-scheme:dark){body{background:#0f1b18;color:#e8efec}.w{border-color:#22312c}.t small,li small,.f span,.msg{color:#9db0aa}li{border-color:#1d2a26}li:first-child b{color:#4ade80}.f a{color:#5eead4}.tabs button{border-color:#22312c}.tabs button[aria-pressed=true]{background:#2dd4bf;border-color:#2dd4bf;color:#052e2a}}`;
+  const js = `(()=>{const BASE='${BASE}',SITE='${SITE}';const $=(i)=>document.getElementById(i);
+const m=new URLSearchParams(location.search).get('m')||'';const lista=$('lista');
+const msg=(t)=>{lista.innerHTML='';const li=document.createElement('li');li.className='msg';li.textContent=t;lista.appendChild(li)};
+if(!/^[a-z0-9-]+\\/[a-z0-9-]+$/.test(m)){msg('Elige tu municipio en '+SITE+BASE+'/widget-gratis/');return}
+const f3=(x)=>x.toLocaleString('es-ES',{minimumFractionDigits:3,maximumFractionDigits:3})+' €';
+fetch(BASE+'/datos/w/'+m+'.json').then((r)=>{if(!r.ok)throw 0;return r.json()}).then((d)=>{
+$('tit').textContent='Gasolineras baratas en '+d.n;const [y,mm,dd]=d.f.split('-');$('fecha').textContent=Number(dd)+'/'+Number(mm)+' '+d.h;
+$('todas').href=SITE+BASE+d.u;$('todas').textContent='Ver todas en '+d.n+' →';
+const pinta=(c)=>{document.querySelectorAll('.tabs button').forEach((b)=>b.setAttribute('aria-pressed',String(b.dataset.c===c)));lista.innerHTML='';
+if(!d[c].length){msg('No hay precios de este combustible hoy.');return}
+for(const [nombre,dir,precio,lejos] of d[c]){const li=document.createElement('li');const div=document.createElement('div');const s=document.createElement('strong');s.textContent=nombre;const sm=document.createElement('small');sm.textContent=lejos||dir;div.append(s,sm);const b=document.createElement('b');b.textContent=f3(precio);li.append(div,b);lista.appendChild(li)}};
+document.querySelectorAll('.tabs button').forEach((b)=>b.addEventListener('click',()=>pinta(b.dataset.c)));pinta(d.g95.length?'g95':'die');
+}).catch(()=>msg('No se pudieron cargar los precios.'))})();`;
+  write('/widget/', `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,follow">
+<title>Gasolineras más baratas hoy · CuántoGasta</title><meta name="description" content="Widget con las gasolineras más baratas de un municipio y sus precios de hoy, para poner en cualquier web."><link rel="canonical" href="${SITE}${u('/')}"><style>${css}</style></head><body>
+<main class="w"><h1 class="t"><span id="tit">Gasolineras más baratas</span> <small id="fecha"></small></h1>
+<div class="tabs" role="group" aria-label="Combustible"><button type="button" data-c="g95" aria-pressed="true">Gasolina 95</button><button type="button" data-c="die" aria-pressed="false">Diésel</button></div>
+<ol id="lista"></ol>
+<div class="f"><a id="todas" href="${SITE}${u('/')}" target="_blank" rel="noopener">Ver todas →</a><span>Precios oficiales</span></div></main>
+<script>${js}</script></body></html>`, { sitemapEntry: false });
+
+  // página para elegir el municipio y copiar el código
+  const lista = provincias.filter((p) => p.muns.length).map((p) => [p.slug, p.nombre, p.muns.map((m) => [m.slug, m.nombre])]);
+  const body = `${pageHead({ ico: 'pump', eyebrow: `${icon('pump')} Gratis para tu web o blog`, h1: 'Widget de las gasolineras más baratas para tu web', sub: 'Muestra en tu web las 5 gasolineras más baratas de tu municipio con los precios de hoy. Se actualiza solo, es gratis y no necesita registro.' })}
+<section class="card w-elegir" id="widget-elegir"><h2 class="h3">1. Elige tu municipio</h2>
+<div class="near-ctrl"><label>Provincia <select id="w-prov"><option value="">Elige provincia…</option></select></label><label>Municipio <select id="w-mun" disabled><option value="">Elige municipio…</option></select></label></div></section>
+<div class="two-col"><section class="card"><h2 class="h3">2. Así se verá</h2><div id="w-vista"><p class="muted">Elige un municipio para ver el widget.</p></div></section>
+<section class="card"><h2 class="h3">3. Cópialo en tu web</h2><p>Pega este código donde quieras que aparezca (en WordPress, en un bloque «HTML personalizado»):</p>
+<textarea id="w-codigo" readonly rows="7" style="width:100%;font:13px/1.4 ui-monospace,monospace;padding:10px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--text)"></textarea>
+<p><button class="btn" type="button" id="w-copiar" disabled>${icon('check')}<span>Copiar código</span></button></p></section></div>
+<section class="prose sec"><h2>Preguntas frecuentes</h2>
+<h3>¿Cuesta algo?</h3><p>No. Es gratis para cualquier web: ayuntamientos, periódicos locales, blogs, asociaciones o comercios. Solo te pedimos que mantengas el enlace de debajo.</p>
+<h3>¿Cada cuánto se actualiza?</h3><p>Varias veces al día, con los precios oficiales que las gasolineras comunican al Ministerio para la Transición Ecológica.</p>
+<h3>¿Hay algo parecido para la luz?</h3><p>Sí: el <a href="${MAIN}/widget/">widget del precio de la luz hoy por horas</a>.</p></section>
+<script type="application/json" id="w-datos">${JSON.stringify(lista).replace(/</g, '\\u003c')}</script>
+<script>(()=>{const L=JSON.parse(document.getElementById('w-datos').textContent);const SITE='${SITE}',BASE='${BASE}';
+const pr=document.getElementById('w-prov'),mu=document.getElementById('w-mun'),cod=document.getElementById('w-codigo'),vista=document.getElementById('w-vista'),cop=document.getElementById('w-copiar');
+for(const [s,n] of L)pr.add(new Option(n,s));
+const esc=(t)=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const llenar=()=>{const p=L.find((x)=>x[0]===pr.value);mu.innerHTML='';mu.add(new Option('Elige municipio…',''));if(!p){mu.disabled=true;return}for(const [s,n] of p[2])mu.add(new Option(n,s));mu.disabled=false};
+const mostrar=()=>{const p=L.find((x)=>x[0]===pr.value);const m=p&&p[2].find((x)=>x[0]===mu.value);if(!m){cod.value='';cop.disabled=true;return}
+const id=p[0]+'/'+m[0];const src=SITE+BASE+'/widget/?m='+id;
+cod.value='<iframe src="'+src+'" width="320" height="300" style="border:0;max-width:100%" title="Gasolineras más baratas en '+esc(m[1])+'" loading="lazy"></iframe>\\n<p style="font:12px/1.4 sans-serif;margin:4px 0 0">Precios de hoy: <a href="'+SITE+BASE+'/'+id+'/">gasolineras baratas en '+esc(m[1])+'</a> · CuántoGasta</p>';
+vista.innerHTML='<iframe src="'+BASE+'/widget/?m='+id+'" width="320" height="300" style="border:0;max-width:100%" title="Vista previa del widget" loading="lazy"></iframe>';cop.disabled=false;
+history.replaceState(null,'','?m='+id)};
+pr.addEventListener('change',()=>{llenar();mostrar()});mu.addEventListener('change',mostrar);
+cop.addEventListener('click',async()=>{cod.select();try{await navigator.clipboard.writeText(cod.value)}catch{document.execCommand('copy')}cop.querySelector('span').textContent='¡Copiado!'});
+const q=(new URLSearchParams(location.search).get('m')||'').split('/');if(q.length===2){pr.value=q[0];llenar();mu.value=q[1];mostrar()}})();</script>`;
+  write('/widget-gratis/', layout({
+    title: 'Widget gratis de las gasolineras más baratas para tu web',
+    desc: 'Pon gratis en tu web o blog las gasolineras más baratas de tu municipio con los precios de hoy. Se actualiza solo con los datos oficiales. Elige el municipio y copia el código.',
+    p: '/widget-gratis/', body, crumbs: [['/widget-gratis/', 'Widget para tu web']],
+  }), { priority: '0.5' });
+}
+
 write('/404.html', layout({ title: 'Página no encontrada', desc: 'La página que buscas no existe o ha cambiado de sitio. Busca las gasolineras más baratas de tu provincia o cerca de ti.', p: '/404.html', body: `${pageHead({ ico: 'info', h1: 'No encontramos esa página' })}<p class="lead">Puede que el municipio se haya movido. Prueba a buscar desde tu provincia:</p>${buscador()}` }), { sitemapEntry: false });
 write('/sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemap.map((s) => `<url><loc>${s.loc}</loc><lastmod>${FECHA}</lastmod>${s.priority ? `<priority>${s.priority}</priority>` : ''}</url>`).join('\n')}\n</urlset>\n`, { sitemapEntry: false });
 const diario = [u('/'), ...COMBUSTIBLES.map((c) => u(`/${c.slug}/`)), u('/marcas/'), u('/mejor-dia-para-repostar/'), ...provincias.map((p) => u(p.path))].map((x) => SITE + x);

@@ -54,7 +54,7 @@ const MARCAS = ['REPSOL', 'MOEVE', 'CEPSA', 'GALP', 'BALLENOIL', 'PLENERGY', 'SH
   'Q8', 'ESCLATOIL', 'BONAREA', 'PLENOIL', 'ALCAMPO', 'EROSKI', 'DISA', 'CAMPSA', 'GASEXPRESS', 'MEROIL', 'AUTONETOIL', 'VALCARCE',
   'PCAN', 'PETROCAT', 'TAMOIL', 'LOW COST REPOST', 'COSTCO', 'E.LECLERC', 'HAM', 'NATURGY', 'SIMON GRUP', 'ENERGY CARBURANTES'];
 // rótulos que en realidad significan «sin marca» (el Ministerio usa «NINGUNO» para las gasolineras independientes)
-const SIN_ROTULO = /^(NINGUN[OA]|SIN (ROTULO|RÓTULO|MARCA|DETERMINAR|ASIGNAR)|S\/?R|N\/?A|NO|SI|-+|\.+)$/;
+const SIN_ROTULO = /^(NINGUN[OA]|SIN (ROTULO|RÓTULO|MARCA|NOMBRE|DETERMINAR|ASIGNAR)|NO HAY|LIBRE|S\/?[RN]|N\/?A|NO|SI|-+|\.+)$/;
 export function marca(rotulo) {
   const r = String(rotulo || '').toUpperCase().replace(/\s+/g, ' ').trim();
   if (!r || SIN_ROTULO.test(r)) return 'Sin marca';
