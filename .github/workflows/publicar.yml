@@ -4,9 +4,9 @@ name: Actualizar y publicar
 
 on:
   schedule:
-    # Cada 3 horas, en minutos poco habituales: GitHub retrasa o se salta a veces las ejecuciones programadas,
-    # sobre todo a las horas en punto, y así siempre hay alguna que llega a tiempo.
-    - cron: '37 4,7,10,13,16,19 * * *'  # 06:37, 09:37, 12:37, 15:37, 18:37 y 21:37 en verano (una hora menos en invierno)
+    # Cada hora, en un minuto poco habitual: GitHub se salta muchas ejecuciones programadas de repositorios con
+    # poca actividad, y así siempre llega alguna a tiempo. Cada ejecución descarga los precios y vuelve a publicar la web.
+    - cron: '23 * * * *'
   push:
     branches: [main]
   workflow_dispatch:
