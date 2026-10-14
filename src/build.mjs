@@ -366,7 +366,7 @@ ${faq.html}`;
     desc: `Gasolina 95 a ${litro(g.avg)} y diésel a ${litro(d.avg)} de media hoy. Precios actualizados de las ${fmt(EST.length, 0)} gasolineras de España y las más baratas cerca de ti.`,
     p: '/', body,
     jsonld: [{ '@context': 'https://schema.org', '@type': 'WebSite', name: 'CuántoGasta Gasolina', url: SITE + u('/'), inLanguage: 'es-ES', publisher: ORG }, faq.ld,
-      { '@context': 'https://schema.org', '@type': 'Dataset', name: 'Precio de los carburantes en las gasolineras de España', description: 'Precios diarios de la gasolina 95, la gasolina 98, el diésel y el GLP en las estaciones de servicio de España.', url: SITE + u('/historico/'), creator: ORG, isBasedOn: 'https://geoportalgasolineras.es/', temporalCoverage: `${FECHAS[0]}/${FECHA}`, spatialCoverage: 'España' }],
+      { '@context': 'https://schema.org', '@type': 'Dataset', name: 'Precio de los carburantes en las gasolineras de España', description: 'Precios diarios de la gasolina 95, la gasolina 98, el diésel y el GLP en las estaciones de servicio de España.', url: SITE + u('/historico/'), creator: ORG, license: 'https://creativecommons.org/licenses/by/4.0/', isBasedOn: 'https://geoportalgasolineras.es/', temporalCoverage: `${FECHAS[0]}/${FECHA}`, spatialCoverage: 'España' }],
   }), { priority: '1.0' });
 }
 
