@@ -1,0 +1,13 @@
+{
+    "actorSpecification": 1,
+    "name": "spain-fuel-prices",
+    "title": "Spain Fuel Prices – Every Gas Station, Official Data",
+    "description": "Live and historical official prices of gasoline, diesel, LPG, CNG and more at all ~12,000 gas stations in Spain. Filter by province, town, postal code, brand, fuel or distance and get the cheapest stations.",
+    "version": "1.0",
+    "buildTag": "latest",
+    "input": "./input_schema.json",
+    "dockerfile": "../Dockerfile",
+    "storages": {
+        "dataset": "./dataset_schema.json"
+    }
+}

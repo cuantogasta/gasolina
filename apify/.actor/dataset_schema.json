@@ -1,0 +1,79 @@
+{
+    "actorSpecification": 1,
+    "fields": {},
+    "views": {
+        "overview": {
+            "title": "Stations and prices",
+            "transformation": {
+                "fields": [
+                    "stationId",
+                    "name",
+                    "brand",
+                    "address",
+                    "municipality",
+                    "province",
+                    "gasoline95E5",
+                    "dieselA",
+                    "gasoline98E5",
+                    "lpg",
+                    "distanceKm",
+                    "openingHours",
+                    "pricesDate",
+                    "pricesTime"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "stationId": {
+                        "label": "ID"
+                    },
+                    "name": {
+                        "label": "Station"
+                    },
+                    "brand": {
+                        "label": "Brand"
+                    },
+                    "address": {
+                        "label": "Address"
+                    },
+                    "municipality": {
+                        "label": "Municipality"
+                    },
+                    "province": {
+                        "label": "Province"
+                    },
+                    "gasoline95E5": {
+                        "label": "Gasoline 95 (€/l)",
+                        "format": "number"
+                    },
+                    "dieselA": {
+                        "label": "Diesel (€/l)",
+                        "format": "number"
+                    },
+                    "gasoline98E5": {
+                        "label": "Gasoline 98 (€/l)",
+                        "format": "number"
+                    },
+                    "lpg": {
+                        "label": "LPG (€/l)",
+                        "format": "number"
+                    },
+                    "distanceKm": {
+                        "label": "Distance (km)",
+                        "format": "number"
+                    },
+                    "openingHours": {
+                        "label": "Opening hours"
+                    },
+                    "pricesDate": {
+                        "label": "Date"
+                    },
+                    "pricesTime": {
+                        "label": "Time"
+                    }
+                }
+            }
+        }
+    }
+}

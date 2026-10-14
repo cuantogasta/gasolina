@@ -1,0 +1,14 @@
+{
+    "name": "spain-fuel-prices",
+    "version": "1.0.0",
+    "description": "Official prices of every gas station in Spain (gasolina, diésel, GLP and more), filtered and ready to use.",
+    "type": "module",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "node src/main.js"
+    },
+    "dependencies": {
+        "apify": "^3.2.6"
+    },
+    "license": "MIT"
+}
