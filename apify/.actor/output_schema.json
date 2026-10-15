@@ -1,0 +1,18 @@
+{
+    "actorOutputSchemaVersion": 1,
+    "title": "Spain Fuel Prices output",
+    "properties": {
+        "stations": {
+            "type": "string",
+            "title": "Stations and prices",
+            "description": "One record per gas station with its official prices.",
+            "template": "{{links.apiDefaultDatasetUrl}}/items?view=overview"
+        },
+        "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "Number of stations, average, minimum and maximum price of each fuel and the cheapest station for each one.",
+            "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/SUMMARY"
+        }
+    }
+}
