@@ -33,8 +33,10 @@ for (const f of html) {
   if (!/<meta name="description" content="[^"]{50,}">/.test(t)) errores.push(`${rel}: descripción ausente o corta`);
   if (!rel.startsWith('404') && !/<link rel="canonical" href="https:\/\//.test(t)) errores.push(`${rel}: sin canonical`);
   const texto = t.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, ' ');
+  // «Infinity Oil» es una gasolinera real: se quita antes de buscar el valor numérico Infinity.
+  const sinMarcas = texto.replace(/Infinity Oil/gi, '');
   for (const malo of ['NaN', 'undefined', 'null €', 'Infinity', '[object Object]']) {
-    if (texto.includes(malo)) errores.push(`${rel}: contiene «${malo}»`);
+    if (sinMarcas.includes(malo)) errores.push(`${rel}: contiene «${malo}»`);
   }
   for (const m of t.matchAll(/(?:href|src)="([^"]+)"/g)) {
     const url = m[1];
